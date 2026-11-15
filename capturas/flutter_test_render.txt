@@ -1,0 +1,17 @@
+00:00 +0: loading C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart
+00:00 +0: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart: (setUpAll)
+00:00 +1: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart: (setUpAll)
+00:01 +2: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart: (setUpAll)
+00:04 +2: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_cliente_test.dart: (setUpAll)
+00:09 +2: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_auth_test.dart: Registro → abre ClienteHome → cerrar sesión vuelve a Login
+00:25 +3: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart: Admin: avión con vista previa → vuelo → reserva de cliente → manifiesto → cancelar vuelo → dashboard → desactivar cliente
+00:29 +4: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart: Admin: avión con vista previa → vuelo → reserva de cliente → manifiesto → cancelar vuelo → dashboard → desactivar cliente
+00:37 +5: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart: Admin: avión con vista previa → vuelo → reserva de cliente → manifiesto → cancelar vuelo → dashboard → desactivar cliente
+00:48 +6: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart: Admin: avión con vista previa → vuelo → reserva de cliente → manifiesto → cancelar vuelo → dashboard → desactivar cliente
+01:01 +7: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart: Admin: avión con vista previa → vuelo → reserva de cliente → manifiesto → cancelar vuelo → dashboard → desactivar cliente
+01:05 +8: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart: Admin: avión con vista previa → vuelo → reserva de cliente → manifiesto → cancelar vuelo → dashboard → desactivar cliente
+01:26 +9: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart: Admin: avión con vista previa → vuelo → reserva de cliente → manifiesto → cancelar vuelo → dashboard → desactivar cliente
+01:42 +10: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_cliente_test.dart: Conflicto 409: otro usuario toma el asiento; se avisa, se actualiza el mapa y se conservan los datos
+02:04 +11: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_cliente_test.dart: Conflicto 409: otro usuario toma el asiento; se avisa, se actualiza el mapa y se conservan los datos
+02:06 +12: C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_cliente_test.dart: (tearDownAll)
+02:08 +12: All tests passed!

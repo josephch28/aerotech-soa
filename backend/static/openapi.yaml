@@ -9,8 +9,8 @@ info:
 servers:
   - url: http://localhost:5000
     description: Local
-  - url: https://aerotech-api.onrender.com
-    description: Render (ajustar al dominio real tras el despliegue)
+  - url: https://aerotech-api-bbql.onrender.com
+    description: Render (producción, HTTPS)
 tags:
   - {name: Usuarios, description: Registro y perfil}
   - {name: Autenticación, description: Login y logout con JWT}

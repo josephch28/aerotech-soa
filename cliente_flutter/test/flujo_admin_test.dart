@@ -20,7 +20,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _api = 'http://localhost:5000';
+const _api = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:5000');
 final _random = Random();
 late Map<String, String> _env;
 late String _tokenAdmin;
