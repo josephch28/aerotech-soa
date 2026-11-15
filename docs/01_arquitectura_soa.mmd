@@ -1,0 +1,38 @@
+flowchart LR
+    subgraph CONS["Consumidores"]
+        direction TB
+        A["App Flutter<br/>Cliente"]
+        B["App Flutter<br/>Administrador"]
+        C["Postman"]
+        D["pytest"]
+    end
+
+    OAS(["Contrato OpenAPI 3.0<br/>/static/openapi.yaml · /docs"])
+
+    subgraph RND["Render · Flask + gunicorn"]
+        direction TB
+        SEG["Capa de seguridad<br/>JWT · rol leído de la BD"]
+        subgraph SRV["6 servicios REST (Blueprints)"]
+            direction TB
+            S1["Usuarios<br/>/api/usuarios"]
+            S2["Autenticación<br/>/api/auth"]
+            S3["Vuelos<br/>/api/vuelos · /api/aeropuertos"]
+            S4["Reservas<br/>/api/reservas"]
+            S5["Administración<br/>/api/admin"]
+            S6["Reportes<br/>/api/reportes"]
+        end
+        LOG["Lógica de negocio<br/>asientos · precios · historial"]
+        VAL["Validaciones<br/>fuente de verdad"]
+    end
+
+    DB[("PostgreSQL + SSL<br/>Supabase · 9 tablas")]
+
+    A -->|"HTTPS · JSON / XML"| SEG
+    B -->|"HTTPS · JSON / XML"| SEG
+    C -->|"HTTPS · JSON / XML"| SEG
+    D -->|"HTTPS · JSON / XML"| SEG
+    SEG --> SRV
+    SRV --> VAL
+    SRV --> LOG
+    LOG -->|"transacciones + FOR UPDATE"| DB
+    OAS -.->|"describe"| SRV

@@ -1,0 +1,22 @@
+sequenceDiagram
+    autonumber
+    actor A as Administrador
+    participant API as API Flask (/api/admin)
+    participant BD as PostgreSQL
+    actor C as Cliente
+
+    A->>API: PUT /api/admin/vuelos/id/cancelar (motivo)
+    API->>API: verificar token y rol admin (403 si es cliente)
+    API->>BD: BEGIN
+    API->>BD: SELECT vuelo FOR UPDATE
+    API->>BD: SELECT reservas confirmadas FOR UPDATE
+    loop cada reserva confirmada
+        API->>BD: liberar asientos de la reserva
+        API->>BD: UPDATE reserva = cancelada (Vuelo cancelado por la aerolínea)
+        API->>BD: INSERT historial (cancelada)
+    end
+    API->>BD: UPDATE vuelo = cancelado y recontar disponibles
+    API->>BD: COMMIT
+    API-->>A: 200 reservas_afectadas = N
+    C->>API: GET /api/reservas/id
+    API-->>C: estado cancelada con el motivo

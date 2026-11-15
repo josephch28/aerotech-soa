@@ -1,0 +1,12 @@
+stateDiagram-v2
+    [*] --> disponible: el administrador crea el vuelo\n(asientos generados según el avión)
+    disponible --> ocupado: crear o editar reserva\n(UPDATE ... WHERE estado = disponible)
+    ocupado --> disponible: cancelar reserva
+    ocupado --> disponible: editar reserva (suelta el asiento)
+    ocupado --> disponible: cancelar vuelo
+    note right of ocupado
+        Un asiento ocupado siempre tiene reserva_id
+        (restricción CHECK de la tabla).
+        Si dos usuarios lo piden a la vez, solo
+        uno lo consigue: el otro recibe 409.
+    end note

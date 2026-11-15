@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    actor U as Usuario
+    participant App as App Flutter
+    participant API as API Flask (/api/auth)
+    participant BD as PostgreSQL
+
+    U->>App: correo y contraseña
+    App->>API: POST /api/auth/login
+    API->>BD: SELECT usuario por correo
+    BD-->>API: fila (hash, rol, activo)
+    alt credenciales incorrectas
+        API-->>App: 401 Credenciales incorrectas
+    else cuenta desactivada
+        API-->>App: 403 Cuenta desactivada
+    else correcto
+        API->>API: verificar hash pbkdf2:sha256
+        API->>API: generar JWT HS256 (sub, nombre, rol, jti, exp)
+        API->>BD: INSERT INTO tokens (estado = activo)
+        API-->>App: 200 token, expira y usuario
+        App->>App: guardar token y enrutar por rol (admin / cliente)
+    end
+    Note over App,API: En cada llamada posterior: Authorization Bearer token
+    App->>API: GET /api/usuarios/perfil
+    API->>API: decodificar JWT (401 si expiró o es inválido)
+    API->>BD: token activo y vigente + rol y activo del usuario
+    BD-->>API: fila o vacío
+    API-->>App: 200 perfil (o 401 revocado / 403 desactivada)

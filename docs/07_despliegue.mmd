@@ -1,0 +1,32 @@
+flowchart LR
+    subgraph PC["PC / navegador del usuario"]
+        direction TB
+        W["App Flutter Windows"]
+        N["App Flutter web (Chrome)"]
+        P["Postman · pytest"]
+    end
+
+    INT{{"Internet<br/>HTTPS (TLS)"}}
+
+    subgraph RND["Render · plan gratuito"]
+        direction TB
+        G["gunicorn<br/>2 workers × 4 hilos"]
+        F["Flask: app:app<br/>6 servicios + /docs"]
+        G --> F
+    end
+
+    subgraph SUP["Supabase · AWS"]
+        direction TB
+        POOL["Session pooler :5432"]
+        PG[("PostgreSQL<br/>9 tablas")]
+        POOL --> PG
+    end
+
+    GH[("GitHub<br/>aerotech-soa")]
+
+    W --> INT
+    N --> INT
+    P --> INT
+    INT --> G
+    F -->|"PostgreSQL + SSL<br/>DATABASE_URL"| POOL
+    GH -.->|"Blueprint render.yaml<br/>despliegue automático"| RND

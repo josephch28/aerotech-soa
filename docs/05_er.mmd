@@ -1,0 +1,110 @@
+erDiagram
+    USUARIOS ||--o{ RESERVAS : "realiza"
+    USUARIOS ||--o{ TOKENS : "tiene"
+    USUARIOS ||--o{ VUELOS : "crea (admin)"
+    USUARIOS ||--o{ HISTORIAL_RESERVAS : "registra"
+    AEROPUERTOS ||--o{ VUELOS : "origen"
+    AEROPUERTOS ||--o{ VUELOS : "destino"
+    AVIONES ||--o{ VUELOS : "opera"
+    VUELOS ||--o{ ASIENTOS : "genera"
+    VUELOS ||--o{ RESERVAS : "recibe"
+    RESERVAS ||--o{ PASAJEROS : "incluye"
+    RESERVAS ||--o{ ASIENTOS : "ocupa"
+    ASIENTOS ||--o{ PASAJEROS : "asignado a"
+    RESERVAS ||--o{ HISTORIAL_RESERVAS : "audita"
+
+    USUARIOS {
+        int id PK
+        string nombre
+        string apellido
+        char cedula UK
+        char telefono
+        string correo UK
+        string password_hash
+        string rol "admin o cliente"
+        bool activo
+        timestamptz fecha_registro
+    }
+    TOKENS {
+        int id PK
+        int usuario_id FK
+        text token
+        timestamptz expiracion
+        string estado "activo o revocado"
+    }
+    AEROPUERTOS {
+        char codigo PK "IATA"
+        string ciudad
+        string nombre
+        bool activo
+    }
+    AVIONES {
+        int id PK
+        string modelo
+        string matricula UK
+        string configuracion "ABC-DEF"
+        string configuracion_ejecutiva
+        int filas
+        int filas_ejecutiva
+        int_array filas_salida
+        bool activo
+    }
+    VUELOS {
+        int id PK
+        string codigo_vuelo "UK con fecha"
+        int avion_id FK
+        char origen FK
+        char destino FK
+        date fecha
+        time hora_salida
+        time hora_llegada
+        numeric precio
+        numeric precio_ejecutiva
+        int asientos_disponibles
+        string estado "programado o cancelado"
+        int creado_por FK
+    }
+    RESERVAS {
+        int id PK
+        char codigo_reserva UK
+        int usuario_id FK
+        int vuelo_id FK
+        int cantidad_asientos "1 a 9"
+        numeric subtotal
+        numeric iva
+        numeric total
+        string estado "confirmada o cancelada"
+        char telefono_contacto
+        string correo_contacto
+        string motivo_cancelacion
+    }
+    ASIENTOS {
+        int id PK
+        int vuelo_id FK
+        string codigo "UK con vuelo"
+        int fila
+        char columna
+        string clase "ejecutiva o economica"
+        bool salida_emergencia
+        string estado "disponible u ocupado"
+        int reserva_id FK
+    }
+    PASAJEROS {
+        int id PK
+        int reserva_id FK
+        int asiento_id FK
+        string nombres
+        string apellidos
+        string tipo_documento "cedula o pasaporte"
+        string numero_documento
+        date fecha_nacimiento
+        numeric precio
+    }
+    HISTORIAL_RESERVAS {
+        int id PK
+        int reserva_id FK
+        int usuario_id FK
+        string accion "creada, modificada o cancelada"
+        jsonb detalle
+        timestamptz fecha
+    }

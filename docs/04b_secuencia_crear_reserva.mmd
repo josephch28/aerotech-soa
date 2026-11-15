@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    actor C1 as Cliente A
+    actor C2 as Cliente B
+    participant API as API Flask (/api/reservas)
+    participant BD as PostgreSQL
+
+    C1->>API: POST /api/reservas (asiento 12A + pasajeros)
+    C2->>API: POST /api/reservas (asiento 12A + pasajeros)
+    API->>API: validar formatos (400 con campos)
+    API->>BD: BEGIN
+    API->>BD: SELECT vuelo FOR UPDATE (bloquea el vuelo)
+    Note over API,BD: Las dos peticiones se serializan por vuelo: la del Cliente B espera aquí
+    API->>BD: validar plazo, edades, documentos duplicados
+    API->>BD: INSERT reservas RETURNING id
+    API->>BD: UPDATE asientos SET ocupado WHERE estado = 'disponible' RETURNING
+    BD-->>API: 12A actualizado
+    API->>BD: INSERT pasajeros, recontar disponibles, INSERT historial (creada)
+    API->>BD: COMMIT
+    API-->>C1: 201 Reserva creada (código de 6 caracteres)
+    Note over API,BD: Se libera el bloqueo y continúa la petición del Cliente B
+    API->>BD: UPDATE asientos ... WHERE estado = 'disponible'
+    BD-->>API: 0 filas (12A ya está ocupado)
+    API->>BD: ROLLBACK
+    API-->>C2: 409 asientos_no_disponibles ["12A"]

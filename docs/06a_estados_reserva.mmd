@@ -1,0 +1,12 @@
+stateDiagram-v2
+    [*] --> confirmada: crear reserva (201)
+    confirmada --> confirmada: editar asientos, pasajeros o cantidad\n(historial: modificada)
+    confirmada --> cancelada: cancelar el cliente\n(hasta 3 h antes de la salida)
+    confirmada --> cancelada: cancelar el administrador\n(con motivo, en cualquier momento)
+    confirmada --> cancelada: el administrador cancela el vuelo
+    cancelada --> [*]
+    note right of cancelada
+        Estado final: no se puede editar
+        ni cancelar de nuevo (409).
+        Los pasajeros se conservan como histórico.
+    end note

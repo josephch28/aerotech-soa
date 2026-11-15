@@ -1,0 +1,26 @@
+sequenceDiagram
+    autonumber
+    actor C as Cliente
+    participant API as API Flask (/api/reservas)
+    participant BD as PostgreSQL
+
+    C->>API: PUT /api/reservas/id (nuevos asientos y pasajeros)
+    API->>API: validar formatos (400 con campos)
+    API->>BD: BEGIN
+    API->>BD: SELECT vuelo FOR UPDATE
+    API->>BD: SELECT reserva FOR UPDATE
+    API->>API: verificar dueño (404), estado confirmada (409) y plazo de 3 h (409)
+    API->>BD: guardar estado anterior (asientos y total)
+    API->>BD: liberar asientos de la reserva y DELETE pasajeros
+    API->>BD: validar edades, salida de emergencia y documentos
+    API->>BD: UPDATE asientos SET ocupado WHERE estado = 'disponible'
+    alt algún asiento ya no está disponible
+        BD-->>API: faltan filas
+        API->>BD: ROLLBACK (la reserva queda como estaba)
+        API-->>C: 409 asientos_no_disponibles
+    else todo disponible
+        API->>BD: INSERT pasajeros y UPDATE reservas (cantidad, subtotal, IVA, total)
+        API->>BD: recontar disponibles e INSERT historial (modificada: antes y después)
+        API->>BD: COMMIT
+        API-->>C: 200 reserva actualizada y diferencia de total
+    end

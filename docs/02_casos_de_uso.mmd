@@ -1,0 +1,34 @@
+flowchart TB
+    CL(["Cliente"])
+    AD(["Administrador"])
+
+    subgraph CLI["Casos de uso del cliente"]
+        direction TB
+        C1("Reservar vuelo<br/>(elige asientos en el mapa del avión<br/>y escribe los datos de cada pasajero)")
+        C3("Editar reserva<br/>(asientos, pasajeros y cantidad)")
+        C4("Cancelar reserva")
+        C5("Descargar comprobante XML")
+        C6("Ver historial de la reserva")
+        C7("Editar perfil y contraseña")
+    end
+    subgraph COM["Casos de uso comunes"]
+        direction TB
+        U1("Registrarse")
+        U2("Iniciar y cerrar sesión")
+        U3("Consultar vuelos y aeropuertos")
+        U4("Ver mapa de asientos")
+    end
+    subgraph ADM["Casos de uso del administrador"]
+        direction TB
+        A1("Gestionar flota de aviones")
+        A2("Crear, editar y cancelar vuelos")
+        A3("Ver manifiesto de pasajeros")
+        A4("Ver todas las reservas y cancelarlas")
+        A5("Activar, desactivar y cambiar rol<br/>de usuarios")
+        A6("Consultar dashboard de indicadores")
+    end
+
+    CL --> CLI
+    CL --> COM
+    AD --> ADM
+    AD --> COM

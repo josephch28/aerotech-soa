@@ -1,0 +1,35 @@
+flowchart TB
+    subgraph FL["Cliente Flutter"]
+        direction TB
+        F1["screens<br/>auth · cliente · admin"]
+        F2["widgets<br/>mapa_asientos · vuelo_card · campos"]
+        F3["services<br/>auth · usuario · vuelo · reserva · admin · reporte"]
+        F4["api_client<br/>Bearer · timeout 60 s · ApiException"]
+        F5["models · utils (validadores, formatos) · sesion"]
+        F1 --> F2
+        F1 --> F3
+        F3 --> F4
+        F1 --> F5
+        F3 --> F5
+    end
+
+    subgraph BE["Backend Flask"]
+        direction TB
+        B1["app.py<br/>create_app · catálogo · /api/salud · /docs"]
+        B2["servicios (Blueprints)<br/>usuarios · auth · vuelos · reservas · admin · reportes"]
+        B3["seguridad.py<br/>@token_requerido · @rol_requerido"]
+        B4["validaciones.py · errores.py"]
+        B5["logica<br/>asientos · precios · historial"]
+        B6["db.py<br/>transaccion() · serializar()"]
+        B1 --> B2
+        B2 --> B3
+        B2 --> B4
+        B2 --> B5
+        B5 --> B6
+        B3 --> B6
+    end
+
+    PG[("PostgreSQL · Supabase")]
+
+    F4 ==>|"HTTPS · JSON / XML"| B1
+    B6 -->|"psycopg 3 + SSL"| PG
