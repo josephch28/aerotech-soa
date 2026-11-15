@@ -1,0 +1,6 @@
+00:00 +0: loading C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_admin_test.dart
+00:00 +0: (setUpAll)
+00:01 +0: Admin: avión con vista previa → vuelo → reserva de cliente → manifiesto → cancelar vuelo → dashboard → desactivar cliente
+01:08 +1: Un cliente desactivado es expulsado en su siguiente acción y ve el motivo en Login
+01:22 +2: (tearDownAll)
+01:22 +2: All tests passed!

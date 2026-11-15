@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: aerotech-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    healthCheckPath: /api/salud
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_HORAS_EXPIRACION
+        value: "8"
+      - key: IVA
+        value: "0.15"
+      - key: ZONA_HORARIA
+        value: America/Guayaquil
+      - key: HORAS_LIMITE_RESERVA
+        value: "1"
+      - key: HORAS_LIMITE_CAMBIOS
+        value: "3"

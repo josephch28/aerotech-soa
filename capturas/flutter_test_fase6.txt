@@ -1,0 +1,12 @@
+00:00 +0: loading C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_auth_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: Validadores: cédula módulo 10 coincide con el backend
+00:00 +1: Registro con cédula inválida muestra el error y no crea la cuenta
+00:01 +2: Registro → abre ClienteHome → cerrar sesión vuelve a Login
+00:13 +3: Correo duplicado: el error aparece bajo el campo correo
+00:16 +4: Login con clave incorrecta muestra SnackBar y se queda en Login
+00:19 +5: Login como admin → AdminHome → cerrar sesión vuelve a Login
+00:25 +6: Al abrir la app con token guardado se valida con /perfil y se enruta por rol
+00:34 +7: Token revocado: el splash vuelve a Login
+00:36 +8: (tearDownAll)
+00:36 +8: All tests passed!

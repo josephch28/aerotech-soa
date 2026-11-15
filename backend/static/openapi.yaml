@@ -1,0 +1,717 @@
+openapi: 3.0.3
+info:
+  title: AeroTech API
+  version: 1.0.0
+  description: |
+    API REST del sistema distribuido de reservas de vuelos **AeroTech** (arquitectura SOA con 6 servicios).
+    Intercambia JSON (y XML para el comprobante). Autenticación con JWT en `Authorization: Bearer <token>`.
+    Todos los errores devuelven `{"error", "codigo"}`; los de validación añaden `campos`.
+servers:
+  - url: http://localhost:5000
+    description: Local
+  - url: https://aerotech-api.onrender.com
+    description: Render (ajustar al dominio real tras el despliegue)
+tags:
+  - {name: Usuarios, description: Registro y perfil}
+  - {name: Autenticación, description: Login y logout con JWT}
+  - {name: Vuelos, description: Consulta pública, aeropuertos y mapa de asientos}
+  - {name: Reservas, description: Gestión de reservas del cliente}
+  - {name: Administración, description: Flota, vuelos, reservas y usuarios (solo admin)}
+  - {name: Reportes, description: Dashboard (solo admin)}
+  - {name: Sistema, description: Salud y catálogo de servicios}
+
+paths:
+  /:
+    get:
+      tags: [Sistema]
+      summary: Catálogo de servicios (descubrimiento SOA)
+      responses:
+        "200": {description: Nombre, versión y servicios}
+  /api/salud:
+    get:
+      tags: [Sistema]
+      summary: Estado del servicio y de la base de datos
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example: {estado: ok, bd: ok, hora_servidor: "2026-12-01T10:00:00-05:00"}
+        "503": {description: Base de datos no disponible}
+
+  # ───────────── Usuarios ─────────────
+  /api/usuarios/registro:
+    post:
+      tags: [Usuarios]
+      summary: Registrar cliente (rol siempre `cliente`)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/RegistroRequest"}
+            example: {nombre: Juan, apellido: Pérez, cedula: "1710034065", telefono: "0991234567", correo: juan@correo.com, password: Clave1234}
+      responses:
+        "201":
+          description: Usuario creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje: {type: string}
+                  usuario: {$ref: "#/components/schemas/Usuario"}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "409": {$ref: "#/components/responses/Conflicto"}
+  /api/usuarios/perfil:
+    get:
+      tags: [Usuarios]
+      summary: Perfil propio con totales de reservas
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Perfil
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Usuario"}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+    put:
+      tags: [Usuarios]
+      summary: Editar nombre, apellido y teléfono
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {nombre: Juan, apellido: Pérez, telefono: "0991234567"}
+      responses:
+        "200": {description: Perfil actualizado}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+  /api/usuarios/password:
+    put:
+      tags: [Usuarios]
+      summary: Cambiar contraseña (revoca los demás tokens)
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {password_actual: Clave1234, password_nueva: Nueva5678}
+      responses:
+        "200": {description: Contraseña actualizada}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+
+  # ───────────── Autenticación ─────────────
+  /api/auth/login:
+    post:
+      tags: [Autenticación]
+      summary: Iniciar sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {correo: juan@correo.com, password: Clave1234}
+      responses:
+        "200":
+          description: Token JWT
+          content:
+            application/json:
+              example:
+                mensaje: Inicio de sesión exitoso
+                token: eyJhbGciOiJIUzI1NiIs...
+                expira: "2026-12-01T18:00:00+00:00"
+                usuario: {id: 2, nombre: Juan, apellido: Pérez, correo: juan@correo.com, rol: cliente}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "401": {description: Credenciales incorrectas, content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+  /api/auth/logout:
+    post:
+      tags: [Autenticación]
+      summary: Cerrar sesión (revoca el token actual)
+      security: [{bearerAuth: []}]
+      responses:
+        "200": {description: Sesión cerrada}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+
+  # ───────────── Vuelos ─────────────
+  /api/aeropuertos:
+    get:
+      tags: [Vuelos]
+      summary: Aeropuertos activos
+      responses:
+        "200":
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Aeropuerto"}
+  /api/vuelos:
+    get:
+      tags: [Vuelos]
+      summary: Buscar vuelos programados y futuros
+      parameters:
+        - {name: origen, in: query, schema: {type: string, example: UIO}}
+        - {name: destino, in: query, schema: {type: string, example: GYE}}
+        - {name: fecha, in: query, schema: {type: string, format: date, example: "2026-12-21"}}
+        - {name: pasajeros, in: query, schema: {type: integer, minimum: 1, maximum: 9, default: 1}}
+      responses:
+        "200":
+          description: Resultados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: {type: integer}
+                  vuelos:
+                    type: array
+                    items: {$ref: "#/components/schemas/Vuelo"}
+        "400": {$ref: "#/components/responses/Validacion"}
+  /api/vuelos/{id}:
+    get:
+      tags: [Vuelos]
+      summary: Detalle de un vuelo
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      responses:
+        "200":
+          description: Vuelo
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Vuelo"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+  /api/vuelos/{id}/asientos:
+    get:
+      tags: [Vuelos]
+      summary: Mapa de asientos del avión (sin datos de pasajeros)
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      responses:
+        "200":
+          description: Mapa
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MapaAsientos"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+
+  # ───────────── Reservas ─────────────
+  /api/reservas/:
+    post:
+      tags: [Reservas]
+      summary: Crear reserva (1 a 9 pasajeros, un asiento cada uno)
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ReservaRequest"}
+      responses:
+        "201":
+          description: Reserva creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje: {type: string, example: Reserva creada}
+                  reserva: {$ref: "#/components/schemas/Reserva"}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+        "409":
+          description: Asientos no disponibles, documento duplicado, vuelo cancelado o fuera de plazo
+          content:
+            application/json:
+              example: {error: "Asientos no disponibles: 12A", codigo: 409, asientos_no_disponibles: ["12A"]}
+    get:
+      tags: [Reservas]
+      summary: Mis reservas
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: estado, in: query, schema: {type: string, enum: [confirmada, cancelada]}}
+      responses:
+        "200": {description: Lista de reservas con vuelo y asientos}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+  /api/reservas/{id}:
+    get:
+      tags: [Reservas]
+      summary: Detalle (con banderas puede_editar y puede_cancelar)
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      responses:
+        "200": {description: Detalle completo}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+    put:
+      tags: [Reservas]
+      summary: Editar asientos, pasajeros y cantidad (sin `vuelo_id`)
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ReservaRequest"}
+      responses:
+        "200":
+          description: Reserva actualizada con `diferencia` de total
+          content:
+            application/json:
+              example: {mensaje: Reserva actualizada, diferencia: 102.35, reserva: {id: 5, codigo_reserva: K7P2QX, cantidad_asientos: 3, asientos: [12A, 12B, 12C], subtotal: 267, iva: 40.05, total: 307.05, estado: confirmada}}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+        "409": {$ref: "#/components/responses/Conflicto"}
+  /api/reservas/{id}/cancelar:
+    put:
+      tags: [Reservas]
+      summary: Cancelar (el admin debe enviar `motivo` de 5 a 200 caracteres)
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      requestBody:
+        content:
+          application/json:
+            example: {motivo: "Solicitud del pasajero"}
+      responses:
+        "200": {description: Reserva cancelada}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+        "409": {$ref: "#/components/responses/Conflicto"}
+  /api/reservas/{id}/factura:
+    get:
+      tags: [Reservas]
+      summary: Comprobante en XML
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      responses:
+        "200":
+          description: Factura
+          content:
+            application/xml:
+              schema: {type: string}
+              example: |
+                <?xml version='1.0' encoding='UTF-8'?>
+                <factura><numero>P001-000058</numero><codigo_reserva>K7P2QX</codigo_reserva>
+                  <subtotal>178.00</subtotal><iva porcentaje="15">26.70</iva><total>204.70</total>
+                  <estado>confirmada</estado></factura>
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+  /api/reservas/{id}/historial:
+    get:
+      tags: [Reservas]
+      summary: Eventos de auditoría (creada, modificada, cancelada)
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      responses:
+        "200": {description: Eventos}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+
+  # ───────────── Administración ─────────────
+  /api/admin/aviones:
+    get:
+      tags: [Administración]
+      summary: Flota con capacidad y vuelos futuros
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Avion"}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+    post:
+      tags: [Administración]
+      summary: Crear avión
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {modelo: Airbus A320, matricula: HC-ATD, configuracion: ABC-DEF, configuracion_ejecutiva: AC-DF, filas: 30, filas_ejecutiva: 3, filas_salida: [12, 13]}
+      responses:
+        "201": {description: Avión creado}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+        "409": {$ref: "#/components/responses/Conflicto"}
+  /api/admin/aviones/{id}:
+    put:
+      tags: [Administración]
+      summary: Editar avión (la estructura solo si no tiene vuelos)
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      responses:
+        "200": {description: Avión actualizado}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+        "409": {$ref: "#/components/responses/Conflicto"}
+  /api/admin/aviones/{id}/estado:
+    patch:
+      tags: [Administración]
+      summary: Activar o desactivar avión
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {activo: false}
+      responses:
+        "200": {description: Estado actualizado}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+        "409": {$ref: "#/components/responses/Conflicto"}
+  /api/admin/aviones/{id}/vista-previa:
+    get:
+      tags: [Administración]
+      summary: Vista previa del mapa de asientos del avión (sin vuelo)
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      responses:
+        "200":
+          description: Mapa
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MapaAsientos"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+  /api/admin/vuelos:
+    get:
+      tags: [Administración]
+      summary: Todos los vuelos con ocupación e ingresos
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: estado, in: query, schema: {type: string, enum: [programado, cancelado]}}
+        - {name: desde, in: query, schema: {type: string, format: date}}
+        - {name: hasta, in: query, schema: {type: string, format: date}}
+        - {name: origen, in: query, schema: {type: string}}
+        - {name: destino, in: query, schema: {type: string}}
+      responses:
+        "200": {description: Lista}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+    post:
+      tags: [Administración]
+      summary: Crear vuelo (genera los asientos según el avión)
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {codigo_vuelo: AT301, avion_id: 1, origen: UIO, destino: GYE, fecha: "2026-12-30", hora_salida: "09:45", hora_llegada: "10:40", precio: 89, precio_ejecutiva: 189}
+      responses:
+        "201": {description: Vuelo creado con número de asientos generados}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+        "409":
+          description: Código duplicado o solapamiento del avión
+          content:
+            application/json:
+              example: {error: "El avión HC-ATA ya opera el vuelo AT101 en ese horario", codigo: 409}
+  /api/admin/vuelos/{id}:
+    put:
+      tags: [Administración]
+      summary: Editar vuelo programado (campos parciales)
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      responses:
+        "200": {description: Vuelo actualizado}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+        "409": {$ref: "#/components/responses/Conflicto"}
+  /api/admin/vuelos/{id}/cancelar:
+    put:
+      tags: [Administración]
+      summary: Cancelar vuelo y todas sus reservas confirmadas
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {motivo: "Mantenimiento programado"}
+      responses:
+        "200":
+          description: Vuelo cancelado
+          content:
+            application/json:
+              example: {mensaje: Vuelo cancelado, reservas_afectadas: 12}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+        "409": {$ref: "#/components/responses/Conflicto"}
+  /api/admin/vuelos/{id}/manifiesto:
+    get:
+      tags: [Administración]
+      summary: Manifiesto de pasajeros confirmados ordenado por asiento
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      responses:
+        "200": {description: Manifiesto}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+  /api/admin/reservas:
+    get:
+      tags: [Administración]
+      summary: Todas las reservas
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: estado, in: query, schema: {type: string, enum: [confirmada, cancelada]}}
+        - {name: vuelo_id, in: query, schema: {type: integer}}
+        - {name: codigo, in: query, schema: {type: string}}
+        - {name: correo, in: query, schema: {type: string}}
+      responses:
+        "200": {description: Lista}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+  /api/admin/usuarios:
+    get:
+      tags: [Administración]
+      summary: Usuarios con número de reservas
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: rol, in: query, schema: {type: string, enum: [admin, cliente]}}
+        - {name: activo, in: query, schema: {type: boolean}}
+        - {name: buscar, in: query, schema: {type: string}}
+      responses:
+        "200": {description: Lista}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+  /api/admin/usuarios/{id}:
+    patch:
+      tags: [Administración]
+      summary: Cambiar rol y/o activar o desactivar
+      security: [{bearerAuth: []}]
+      parameters: [{$ref: "#/components/parameters/Id"}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {activo: false}
+      responses:
+        "200": {description: Usuario actualizado}
+        "400": {$ref: "#/components/responses/Validacion"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+        "404": {$ref: "#/components/responses/NoEncontrado"}
+        "409": {$ref: "#/components/responses/Conflicto"}
+
+  # ───────────── Reportes ─────────────
+  /api/reportes/dashboard:
+    get:
+      tags: [Reportes]
+      summary: Indicadores, ocupación por vuelo, reservas por día y rutas top
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Dashboard
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Dashboard"}
+        "401": {$ref: "#/components/responses/NoAutenticado"}
+        "403": {$ref: "#/components/responses/SinPermisos"}
+
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: {type: integer}
+  responses:
+    Validacion:
+      description: Datos inválidos (400)
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ErrorValidacion"}
+    NoAutenticado:
+      description: Sin token, inválido, expirado o revocado (401)
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+          example: {error: "Sesión cerrada o token revocado", codigo: 401}
+    SinPermisos:
+      description: Sin permisos o cuenta desactivada (403)
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+          example: {error: "No tiene permisos para esta operación", codigo: 403}
+    NoEncontrado:
+      description: No existe (404)
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    Conflicto:
+      description: Conflicto de estado o duplicado (409)
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: {type: string}
+        codigo: {type: integer}
+    ErrorValidacion:
+      type: object
+      properties:
+        error: {type: string, example: Datos inválidos}
+        codigo: {type: integer, example: 400}
+        campos:
+          type: object
+          additionalProperties: {type: string}
+          example: {cedula: Cédula ecuatoriana inválida, "pasajeros[1].numero_documento": Pasaporte inválido (6-15 letras/números)}
+    RegistroRequest:
+      type: object
+      required: [nombre, apellido, cedula, telefono, correo, password]
+      properties:
+        nombre: {type: string}
+        apellido: {type: string}
+        cedula: {type: string, example: "1710034065"}
+        telefono: {type: string, example: "0991234567"}
+        correo: {type: string, format: email}
+        password: {type: string, minLength: 8}
+    Usuario:
+      type: object
+      properties:
+        id: {type: integer}
+        nombre: {type: string}
+        apellido: {type: string}
+        cedula: {type: string}
+        telefono: {type: string}
+        correo: {type: string}
+        rol: {type: string, enum: [admin, cliente]}
+        activo: {type: boolean}
+        fecha_registro: {type: string, format: date-time}
+        total_reservas: {type: integer}
+        reservas_activas: {type: integer}
+    Aeropuerto:
+      type: object
+      properties:
+        codigo: {type: string, example: UIO}
+        ciudad: {type: string, example: Quito}
+        nombre: {type: string}
+    Avion:
+      type: object
+      properties:
+        id: {type: integer}
+        modelo: {type: string}
+        matricula: {type: string, example: HC-ATA}
+        configuracion: {type: string, example: ABC-DEF}
+        configuracion_ejecutiva: {type: string, nullable: true, example: AC-DF}
+        filas: {type: integer}
+        filas_ejecutiva: {type: integer}
+        filas_salida: {type: array, items: {type: integer}}
+        activo: {type: boolean}
+        capacidad: {type: integer}
+        vuelos_futuros: {type: integer}
+    Vuelo:
+      type: object
+      properties:
+        id: {type: integer}
+        codigo_vuelo: {type: string, example: AT101}
+        origen: {type: string}
+        destino: {type: string}
+        ciudad_origen: {type: string}
+        ciudad_destino: {type: string}
+        fecha: {type: string, format: date}
+        hora_salida: {type: string, example: "09:45"}
+        hora_llegada: {type: string, example: "10:40"}
+        duracion_minutos: {type: integer}
+        precio: {type: number}
+        precio_ejecutiva: {type: number}
+        asientos_disponibles: {type: integer}
+        estado: {type: string, enum: [programado, cancelado]}
+        modelo_avion: {type: string}
+        matricula: {type: string}
+    Asiento:
+      type: object
+      properties:
+        codigo: {type: string, example: 12A}
+        fila: {type: integer}
+        columna: {type: string}
+        clase: {type: string, enum: [ejecutiva, economica]}
+        salida_emergencia: {type: boolean}
+        estado: {type: string, enum: [disponible, ocupado]}
+        precio: {type: number, nullable: true}
+    MapaAsientos:
+      type: object
+      properties:
+        vuelo: {type: object, nullable: true}
+        avion: {type: object}
+        resumen:
+          type: object
+          properties:
+            total: {type: integer}
+            disponibles: {type: integer}
+            ocupados: {type: integer}
+        asientos:
+          type: array
+          items: {$ref: "#/components/schemas/Asiento"}
+    Pasajero:
+      type: object
+      required: [asiento, nombres, apellidos, tipo_documento, numero_documento, fecha_nacimiento]
+      properties:
+        asiento: {type: string, example: 12A}
+        nombres: {type: string}
+        apellidos: {type: string}
+        tipo_documento: {type: string, enum: [cedula, pasaporte]}
+        numero_documento: {type: string}
+        fecha_nacimiento: {type: string, format: date}
+    ReservaRequest:
+      type: object
+      required: [pasajeros]
+      properties:
+        vuelo_id: {type: integer, description: Solo al crear}
+        contacto:
+          type: object
+          properties:
+            telefono: {type: string}
+            correo: {type: string}
+        pasajeros:
+          type: array
+          minItems: 1
+          maxItems: 9
+          items: {$ref: "#/components/schemas/Pasajero"}
+      example:
+        vuelo_id: 5
+        contacto: {telefono: "0991234567", correo: juan@correo.com}
+        pasajeros:
+          - {asiento: 12A, nombres: Juan, apellidos: Pérez, tipo_documento: cedula, numero_documento: "1710034065", fecha_nacimiento: "1990-05-10"}
+          - {asiento: 12B, nombres: Ana, apellidos: Pérez, tipo_documento: pasaporte, numero_documento: AB123456, fecha_nacimiento: "2016-03-02"}
+    Reserva:
+      type: object
+      properties:
+        id: {type: integer}
+        codigo_reserva: {type: string, example: K7P2QX}
+        cantidad_asientos: {type: integer}
+        asientos: {type: array, items: {type: string}}
+        subtotal: {type: number}
+        iva: {type: number}
+        total: {type: number}
+        estado: {type: string, enum: [confirmada, cancelada]}
+    Dashboard:
+      type: object
+      properties:
+        indicadores:
+          type: object
+          properties:
+            vuelos_programados: {type: integer}
+            reservas_confirmadas: {type: integer}
+            pasajeros: {type: integer}
+            ingresos: {type: number}
+            ocupacion_promedio: {type: number}
+            usuarios_clientes: {type: integer}
+        ocupacion_por_vuelo: {type: array, items: {type: object}}
+        reservas_por_dia: {type: array, items: {type: object}}
+        rutas_top: {type: array, items: {type: object}}

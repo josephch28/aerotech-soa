@@ -1,0 +1,11 @@
+registro (201): 201 {"mensaje": "Usuario registrado", "usuario": {"id": 2, "nombre": "Juan", "apellido": "Pérez", "cedula": "0406814103", "telefono": "0991234567", "correo": "test_cumz0lkfyo@correo.com", "rol": "cliente", "activo": true, "fecha_regis
+registro duplicado (409): 409 {"error": "El correo ya está registrado", "codigo": 409}
+cédula inválida (400): 400 {"error": "Datos inválidos", "codigo": 400, "campos": {"cedula": "Cédula ecuatoriana inválida", "password": "Mínimo 8 caracteres con letras y números"}}
+login (200): 200 {"mensaje": "Inicio de sesión exitoso", "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwibm9tYnJlIjoiSnVhbiIsInJvbCI6ImNsaWVudGUiLCJqdGkiOiJlOTdhMDgyY2ZjNzE4OTQ2IiwiZXhwIjoxNzk0NzM5NTU0fQ.2fWN3i8_SOKZAzfEqEre-eUYvoHx
+login malo (401): 401 {"error": "Credenciales incorrectas", "codigo": 401}
+perfil con token (200): 200 {"id": 2, "nombre": "Juan", "apellido": "Pérez", "cedula": "0406814103", "telefono": "0991234567", "correo": "test_cumz0lkfyo@correo.com", "rol": "cliente", "activo": true, "fecha_registro": "2026-11-15T02:45:43.811357+00:00", "to
+perfil sin token (401): 401 {"error": "Token requerido", "codigo": 401}
+logout (200): 200 {"mensaje": "Sesión cerrada"}
+perfil tras logout (401): 401 {"error": "Sesión cerrada o token revocado", "codigo": 401}
+catálogo /: 200 {"api": "AeroTech – Reservas de vuelos", "version": "1.0.0", "servicios": [{"nombre": "Usuarios", "prefijo": "/api/usuarios", "descripcion": "Registro y perfil de usuarios", "endpoints": ["POST /registro", "GET /perfil", "PUT /per
+docs: 200

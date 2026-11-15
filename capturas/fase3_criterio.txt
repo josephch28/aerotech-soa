@@ -1,0 +1,22 @@
+vuelo 2 asientos 72
+crear 2 pax (201): 201 código=GAVRFE total=204.7
+  mapa: 5A ocupado 5C ocupado resumen {'total': 72, 'disponibles': 70, 'ocupados': 2} | recuento vuelo OK: True
+asiento ocupado (409): 409 ['5A']
+asiento inexistente (400): 400 
+niño salida emergencia (400): 400 {'pasajeros[0].asiento': 'Los asientos de salida de emergencia requieren pasajeros mayores de 15 años'}
+sin adulto (400): 400 
+más de 9 pax (400): 400 
+editar 2→3 y cambiar asiento (200): 200 asientos=['5A', '6C', '6D'] diferencia=102.35
+  5C disponible 6C ocupado 6D ocupado | disponibles: 69 (esperado 69)
+editar a asiento ocupado (409): 409 
+  reserva intacta: ['5A', '6C', '6D'] puede_editar True puede_cancelar True
+reserva ajena (404): 404 
+factura XML (200): 200 application/xml; charset=utf-8 | total=307.05 pasajeros=3
+cancelar (200): 200 
+  disponibles tras cancelar: 71 (esperado 71: queda 7A de B)
+cancelar otra vez (409): 409 
+editar cancelada (409): 409 
+historial: ['creada', 'modificada', 'cancelada']
+buscar vuelos: 200 1
+aeropuertos: 8 | vuelo 99999: 404 | fecha mala: 400
+limpieza hecha

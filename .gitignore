@@ -1,0 +1,18 @@
+# Secretos y entornos
+.env
+.venv/
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Flutter
+cliente_flutter/build/
+cliente_flutter/.dart_tool/
+
+# Archivos locales que no se versionan
+*.log
+capturas/servidor_*.log
+*.pdf

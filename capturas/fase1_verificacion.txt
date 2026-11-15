@@ -1,0 +1,4 @@
+tablas: 9
+aeropuertos: 8
+aviones: 3
+admin: [('admin@aerotech.ec', 'admin', True)]

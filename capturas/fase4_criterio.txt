@@ -1,0 +1,51 @@
+== Criterio de semillas ==
+vuelos: 17 (>= 15)
+vuelos con disponibles == asientos libres: True
+asientos == capacidad del avión: True
+ocupación (ocupados/total) primeros vuelos: [('AT101', 52, 174), ('AT102', 28, 94), ('AT103', 52, 174), ('AT201', 21, 72)]
+
+== Permisos ==
+cliente GET /api/admin/vuelos (403): 403 
+cliente GET /api/admin/aviones (403): 403 
+cliente GET /api/admin/reservas (403): 403 
+cliente GET /api/admin/usuarios (403): 403 
+cliente GET /api/reportes/dashboard (403): 403 
+sin token (401): 401 
+
+== Admin: avión y vuelos ==
+avión config inválida (400): 400 
+crear avión (201): 201 capacidad=10
+vista previa (200): 200 {'total': 10, 'disponibles': 10, 'ocupados': 0}
+crear vuelo (201): 201 asientos generados=10 (capacidad 10)
+vuelo solapado mismo avión (409): 409 El avión HC-0CNV ya opera el vuelo TX247 en ese horario
+vuelo con rotación suficiente (201): 201 
+origen = destino (400): 400 
+llegada antes de salida (400): 400 
+código+fecha duplicado (409): 409 
+editar precio (200): 200 
+
+== Reservas sobre el vuelo y cancelación ==
+cliente reserva (201): 201 
+cambiar avión con reservas (409): 409 
+manifiesto (200): 200 pasajeros=2
+admin ve todas las reservas (200): 200 total=162
+cancelar vuelo (200): 200 reservas afectadas=1
+  reserva ahora: cancelada | Vuelo cancelado por la aerolínea
+  asientos liberados: {'asientos_disponibles': 10, 'libres': 10}
+vuelos cancelados no aparecen en la búsqueda: total = 1
+desactivar avión con vuelos programados (409): 409 
+
+== Usuarios ==
+listar usuarios (200): 200 total=2
+admin se desactiva a sí mismo (409): 409 
+desactivar cliente (200): 200 
+token del desactivado queda revocado (401): 401 
+login del desactivado (403): 403 
+
+== Dashboard ==
+dashboard (200): 200 claves=['indicadores', 'ocupacion_por_vuelo', 'reservas_por_dia', 'rutas_top']
+  indicadores: {'vuelos_programados': 18, 'reservas_confirmadas': 161, 'pasajeros': 386, 'ingresos': 44649.9, 'ocupacion_promedio': 16.5, 'usuarios_clientes': 2}
+  rutas_top: [{'ruta': 'UIO-GYE', 'pasajeros': 104, 'ingresos': 10356.0}, {'ruta': 'GYE-UIO', 'pasajeros': 52, 'ingresos': 5028.0}]
+
+== Limpieza de datos de prueba ==
+hecho
