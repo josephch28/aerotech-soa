@@ -130,20 +130,20 @@ Usan las pantallas reales y el backend real (sin mocks). Comando: `flutter test 
 
 | ID | Servicio | Rol | Caso | Entrada | Esperado | Obtenido | Evidencia |
 |---|---|---|---|---|---|---|---|
-| F01 | Usuarios/Auth | Anónimo | Cédula inválida bloquea el registro | Cédula inválida | Error bajo el campo, sin llamar a la API | OK | `capturas/flutter_test_todas.txt` |
-| F02 | Usuarios/Auth | Anónimo | Registro → sesión iniciada → Mi cuenta → cerrar sesión | Datos válidos | Vuelve a la página de inicio | OK | ídem |
-| F03 | Usuarios/Auth | Anónimo | Correo duplicado | Correo ya registrado | Mensaje 409 bajo el campo correo | OK | ídem |
-| F04 | Usuarios/Auth | Anónimo | Contraseña incorrecta | Clave errónea | SnackBar de credenciales incorrectas | OK | ídem |
-| F05 | Usuarios/Auth | Admin | Login admin → AdminHome → logout | Credenciales admin | Panel admin y salida a `/inicio` | OK | ídem |
-| F06 | Usuarios/Auth | Cliente | Token guardado se valida con `/perfil`; el rol viene del servidor | Token en almacenamiento | Sesión restaurada con el rol real | OK | ídem |
-| F07 | Usuarios/Auth | Cliente | Token inválido | Token falso | Vuelve a Login | OK | ídem |
-| F08 | Vuelos/Reservas | Anónimo→Cliente | Landing → resultados → detalle → asientos → pasajeros → resumen → login tardío → confirmar | Búsqueda de vuelo | Reserva creada tras iniciar sesión; datos conservados | OK | `capturas/flutter_test_publico.txt` |
-| F09 | Vuelos | Anónimo | Búsqueda sin resultados y filtros | Fecha sin vuelos | Mensaje de sin vuelos | OK | ídem |
-| F10 | Reservas | Cliente | Reserva completa con edición y cancelación | Mapa de asientos, pasajeros | Totales con IVA, diferencia al editar, asientos liberados | OK | `capturas/flutter_test_todas.txt` |
-| F11 | Reservas | Cliente | Conflicto 409: otro usuario toma el asiento | Asiento tomado antes de confirmar | Aviso, mapa actualizado y datos del pasajero conservados | OK | ídem |
-| F12 | Aviones/Vuelos/Reportes | Admin | Avión con vista previa → vuelo → reserva de cliente → manifiesto → cancelar vuelo → dashboard → desactivar cliente | Flujo completo | Cada paso refleja el cambio en el backend | OK | ídem |
-| F13 | Usuarios | Admin→Cliente | Cliente desactivado es expulsado | Desactivar usuario con sesión activa | Siguiente petición → 403 → Login con aviso | OK | ídem |
-| F14 | Reservas | Admin | Admin no puede reservar | Admin llega al resumen | Sesión cerrada con mensaje | OK | `capturas/flutter_test_publico.txt` |
+| F01 | Usuarios/Auth | Anónimo | Validador de cédula (módulo 10) coincide con el backend | Cédulas válidas e inválidas | Mismo resultado que el servidor | OK | `capturas/flutter_test_todas.txt` |
+| F02 | Usuarios/Auth | Anónimo | Registro con cédula inválida | Cédula inválida | Muestra el error y no crea la cuenta | OK | ídem |
+| F03 | Usuarios/Auth | Anónimo | Registro → inicio con sesión → Mi cuenta → cerrar sesión | Datos válidos | Vuelve al inicio | OK | ídem |
+| F04 | Usuarios/Auth | Anónimo | Correo duplicado | Correo ya registrado | Error 409 bajo el campo correo | OK | ídem |
+| F05 | Usuarios/Auth | Anónimo | Login con clave incorrecta | Clave errónea | SnackBar y permanece en Login | OK | ídem |
+| F06 | Usuarios/Auth | Admin | Login admin → AdminHome → cerrar sesión | Credenciales admin | Panel admin y salida al inicio | OK | ídem |
+| F07 | Usuarios/Auth | Cliente | Token guardado se valida con `/perfil` y se enruta por rol | Token en almacenamiento | Sesión restaurada con el rol del servidor | OK | ídem |
+| F08 | Usuarios/Auth | Visitante | Token guardado vencido | Token vencido | Entra al inicio como visitante, sin errores | OK | ídem |
+| F09 | Landing | Visitante | Página de inicio pública | Abrir la app sin sesión | Ofertas, destinos y botones de acceso visibles | OK | ídem |
+| F10 | Vuelos/Reservas | Visitante→Cliente | Busca, elige asientos y llena pasajeros sin cuenta; el login se pide al final | Búsqueda y datos de pasajeros | La reserva continúa tras iniciar sesión | OK | `capturas/flutter_test_publico.txt` |
+| F11 | Reservas | Cliente | Reservar, comprobante, editar a 3 asientos, historial y cancelar | Flujo completo | Totales con IVA, diferencia al editar, asientos liberados | OK | `capturas/flutter_test_todas.txt` |
+| F12 | Reservas | Cliente | Conflicto 409: otro usuario toma el asiento | Asiento tomado antes de confirmar | Aviso, mapa actualizado y datos conservados | OK | ídem |
+| F13 | Aviones/Vuelos/Reportes | Admin | Avión con vista previa → vuelo → reserva de cliente → manifiesto → cancelar vuelo → dashboard → desactivar cliente | Flujo completo | Cada paso refleja el cambio en el backend | OK | ídem |
+| F14 | Usuarios | Cliente desactivado | Expulsión en la siguiente acción | Admin desactiva al cliente con sesión activa | Vuelve a Login y ve el motivo | OK | ídem |
 
 ## 3. Pruebas manuales de la app (Flutter web, navegador)
 
@@ -158,10 +158,10 @@ Ejecutadas contra Render con datos de demostración. Capturas en `capturas/`.
 | M05 | Vuelos | Anónimo | Mapa de asientos por clase | Detalle de vuelo | Libres/ocupados/seleccionados | OK | `18_cliente_mapa_asientos.png` |
 | M06 | Vuelos | Anónimo | Salidas de emergencia visibles | Mapa de asientos | Filas de salida marcadas | OK | `18b_cliente_mapa_salidas_emergencia.jpg` |
 | M07 | Reservas | Anónimo | Datos de pasajeros | 2 pasajeros | Formulario por asiento | OK | `19_cliente_pasajeros.jpg` |
-| M08 | Reservas | Anónimo | Resumen pide iniciar sesión (login tardío) | Resumen sin sesión | Banner y botón «Iniciar sesión para confirmar» | OK | `20_cliente_resumen.jpg` |
-| M09 | Reservas | Cliente | Reserva exitosa con código | Confirmar | Código de reserva y total con IVA | OK | `21_cliente_exito.jpg` |
-| M10 | Reservas | Cliente | Editar reserva: cambiar asiento | Mapa de edición | Asientos actuales marcados | OK | `22_cliente_editar_mapa.jpg` |
-| M11 | Reservas | Cliente | Editar: diferencia de precio | Agregar asiento | Muestra la diferencia a pagar | OK | `23_cliente_editar_diferencia.jpg` |
+| M08 | Reservas | Visitante | Login tardío: el resumen pide iniciar sesión antes de confirmar | Resumen sin sesión | Banner y botón «Iniciar sesión para confirmar»; los datos se conservan | OK (verificado con la prueba F10; sin captura propia) | `capturas/flutter_test_publico.txt` |
+| M09 | Reservas | Cliente | Resumen de cambios al editar una reserva | Agregar pasajero | Nuevo total, total anterior y diferencia | OK | `20_cliente_resumen.jpg` |
+| M10 | Reservas | Cliente | Reserva actualizada con su código | Guardar cambios | Código y diferencia | OK | `21_cliente_exito.jpg` |
+| M11 | Reservas | Cliente | Editar reserva: mapa con asientos actuales | Mapa de edición | Asientos actuales marcados | OK | `22_cliente_editar_mapa.jpg`, `23_cliente_editar_diferencia.jpg` |
 | M12 | Reservas | Cliente | Mis reservas | Menú Mis reservas | Lista con estado | OK | `23b_cliente_mis_reservas.jpg` |
 | M13 | Reservas | Cliente | Historial de eventos | Detalle de reserva | Creación/edición/cancelación | OK | `24_cliente_historial.jpg` |
 | M14 | Reservas | Cliente | Cancelar reserva | Confirmar cancelación | Estado cancelada, asientos liberados | OK | `25_cliente_cancelar.jpg` |
