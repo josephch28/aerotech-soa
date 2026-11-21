@@ -67,10 +67,10 @@ class _ResumenReservaScreenState extends State<ResumenReservaScreen> {
     } on ApiException catch (e) {
       final ocupados = (e.extra['asientos_no_disponibles'] as List?)?.map((x) => '$x').toList();
       if (e.codigo == 409 && ocupados != null && ocupados.isNotEmpty) {
-        // Conserva los datos de los demás pasajeros, quita los asientos tomados y vuelve al mapa
+        // Quita de la selección los asientos tomados y vuelve al mapa. Los datos de los pasajeros se conservan
+        // (también los del asiento perdido: se reasignan al asiento nuevo en la pantalla de pasajeros).
         for (final c in ocupados) {
           f.seleccion.remove(c);
-          f.datos.remove(c);
         }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(

@@ -154,7 +154,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       lineBarsData: [
         LineChartBarData(
           spots: [for (var i = 0; i < datos.length; i++) FlSpot(i.toDouble(), numero(datos[i]['reservas']))],
-          isCurved: true,
+          isCurved: false, // líneas rectas: la curva suavizada bajaba de 0 entre días con pocos datos
           color: t.colorScheme.primary,
           barWidth: 3,
           dotData: const FlDotData(show: true),
