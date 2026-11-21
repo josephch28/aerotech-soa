@@ -12,8 +12,10 @@ import 'package:aerotech/screens/admin/avion_form_screen.dart';
 import 'package:aerotech/screens/admin/vuelos_admin_screen.dart';
 import 'package:aerotech/screens/auth/login_screen.dart';
 import 'package:aerotech/screens/cliente/cliente_home.dart';
+import 'package:aerotech/screens/publico/landing_screen.dart';
 import 'package:aerotech/sesion.dart';
 import 'package:aerotech/utils/validadores.dart';
+import 'ayudas.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -88,7 +90,7 @@ Future<void> avanzar(WidgetTester t, [int n = 8]) async {
 }
 
 Future<void> _pantalla(WidgetTester t) async {
-  t.view.physicalSize = const Size(1400, 1800);
+  t.view.physicalSize = const Size(1500, 1800);
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
   SharedPreferences.setMockInitialValues({});
@@ -97,11 +99,16 @@ Future<void> _pantalla(WidgetTester t) async {
 
 Future<void> _login(WidgetTester t, String correo, String clave, Type destino) async {
   await t.pumpWidget(const AeroTechApp());
-  await esperar(t, find.byType(LoginScreen));
+  await abrirLoginDesdeLanding(t); // la app arranca en la página de inicio pública
   await t.enterText(find.byType(TextFormField).at(0), correo);
   await t.enterText(find.byType(TextFormField).at(1), clave);
   await t.tap(find.widgetWithText(FilledButton, 'Iniciar sesión'));
-  await esperar(t, find.byType(destino));
+  if (destino == ClienteHome) {
+    await esperar(t, find.byType(LandingScreen)); // el cliente vuelve al inicio con la sesión abierta
+    await abrirMiCuenta(t);
+  } else {
+    await esperar(t, find.byType(destino));
+  }
 }
 
 Finder _rail(String etiqueta) => find.descendant(of: find.byType(NavigationRail), matching: find.text(etiqueta));
@@ -206,9 +213,9 @@ void main() {
 
     // D) Vuelos → manifiesto (Mapa y Pasajeros)
     await t.tap(_rail('Vuelos'));
-    await esperar(t, find.byType(Card));
-    await t.scrollUntilVisible(find.text(codigo), 300,
-        scrollable: find.descendant(of: find.byType(VuelosAdminScreen), matching: find.byType(Scrollable)).last, maxScrolls: 60);
+    await esperar(t, find.descendant(of: find.byType(VuelosAdminScreen), matching: find.byType(ListView))); // lista cargada
+    await t.scrollUntilVisible(find.text(codigo), 800,
+        scrollable: find.descendant(of: find.byType(VuelosAdminScreen), matching: find.byType(Scrollable)).last, maxScrolls: 300);
     Finder menuDe() => find.descendant(of: find.ancestor(of: find.text(codigo), matching: find.byType(Card)), matching: find.byType(PopupMenuButton<String>));
     await t.ensureVisible(menuDe());
     await avanzar(t, 4);
@@ -277,6 +284,11 @@ void main() {
     await t.enterText(find.widgetWithText(TextField, 'Buscar por nombre, correo o cédula'), correoCliente);
     await t.tap(find.widgetWithText(FilledButton, 'Buscar').last);
     await esperar(t, find.text('Cliente ParaAdmin'));
+    for (var i = 0; i < 240 && find.byType(Switch).evaluate().length != 1; i++) {
+      // la lista se filtra con una nueva llamada: se espera a que quede solo el cliente buscado
+      await t.runAsync(() => Future.delayed(const Duration(milliseconds: 250)));
+      await t.pump(const Duration(milliseconds: 50));
+    }
     await t.tap(find.byType(Switch));
     await esperar(t, find.widgetWithText(FilledButton, 'Desactivar'));
     await t.tap(find.widgetWithText(FilledButton, 'Desactivar'));
@@ -291,7 +303,8 @@ void main() {
 
     // Cerrar sesión desde el panel
     await t.tap(find.descendant(of: find.byType(AppBar), matching: find.byIcon(Icons.logout)));
-    await esperar(t, find.byType(LoginScreen));
+    await esperar(t, find.byType(LandingScreen));
+    await drenar(t);
   }, timeout: const Timeout(Duration(minutes: 12)));
 
   testWidgets('Un cliente desactivado es expulsado en su siguiente acción y ve el motivo en Login', (t) async {
@@ -318,5 +331,6 @@ void main() {
     await t.tap(find.widgetWithText(FilledButton, 'Iniciar sesión'));
     await esperar(t, find.textContaining('Cuenta desactivada'));
     expect(find.byType(ClienteHome), findsNothing);
+    await drenar(t);
   }, timeout: const Timeout(Duration(minutes: 6)));
 }

@@ -23,6 +23,12 @@ class _RegistroScreenState extends State<RegistroScreen> {
   bool _ver = false;
   bool _cargando = false;
 
+  /// Si se abrió desde el último paso de una reserva, al crear la cuenta se vuelve a la reserva (devuelve `true`).
+  bool get _retorno {
+    final a = ModalRoute.of(context)?.settings.arguments;
+    return a is Map && a['retorno'] == true;
+  }
+
   @override
   void dispose() {
     for (final c in _c.values) {
@@ -53,7 +59,11 @@ class _RegistroScreenState extends State<RegistroScreen> {
       await AuthService.login(_c['correo']!.text, _c['password']!.text);
       if (!mounted) return;
       mostrarMensaje(context, 'Cuenta creada. ¡Bienvenido a AeroTech!');
-      Navigator.of(context).pushNamedAndRemoveUntil(Sesion.instancia.rutaInicio, (_) => false);
+      if (_retorno) {
+        Navigator.of(context).pop(true);
+      } else {
+        Navigator.of(context).pushNamedAndRemoveUntil(Sesion.instancia.rutaInicio, (_) => false);
+      }
     } on ApiException catch (e) {
       final errores = {...e.campos};
       if (e.codigo == 409) {

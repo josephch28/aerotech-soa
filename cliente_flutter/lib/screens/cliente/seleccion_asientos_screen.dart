@@ -7,6 +7,7 @@ import '../../utils/ui.dart';
 import '../../widgets/cargando.dart';
 import '../../widgets/error_reintentar.dart';
 import '../../widgets/mapa_asientos/mapa_asientos.dart';
+import '../../widgets/pasos_reserva.dart';
 import 'datos_pasajeros_screen.dart';
 import 'reserva_flujo.dart';
 
@@ -190,7 +191,7 @@ class _SeleccionAsientosScreenState extends State<SeleccionAsientosScreen> {
         actions: [IconButton(tooltip: 'Recargar mapa', icon: const Icon(Icons.refresh), onPressed: _cargando ? null : _cargar)],
         bottom: _cargando && f.mapa != null ? const PreferredSize(preferredSize: Size.fromHeight(3), child: LinearProgressIndicator()) : null,
       ),
-      body: cuerpo,
+      body: Column(children: [const PasosReserva(actual: 1), Expanded(child: cuerpo)]),
     );
   }
 }

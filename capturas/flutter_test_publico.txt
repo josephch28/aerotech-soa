@@ -1,0 +1,5 @@
+00:00 +0: loading C:/SEXTO SEMESTRE/DISTRIBUIDAS/APE4/cliente_flutter/test/flujo_publico_test.dart
+00:00 +0: (setUpAll)
+00:06 +0: Visitante: busca, elige asientos y llena pasajeros sin cuenta; el login se pide al final y la reserva continúa
+00:49 +1: (tearDownAll)
+00:51 +1: All tests passed!

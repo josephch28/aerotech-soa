@@ -4,15 +4,21 @@ import 'buscar_vuelos_screen.dart';
 import 'mis_reservas_screen.dart';
 import 'perfil_screen.dart';
 
-/// Pantalla principal del cliente: pestañas Vuelos / Mis reservas / Perfil
+/// «Mi cuenta» del cliente: pestañas Vuelos / Mis reservas / Perfil
 /// (NavigationRail si el ancho supera 800 px, NavigationBar si no).
 class ClienteHome extends StatefulWidget {
-  /// Pestaña activa; otras pantallas pueden cambiarla (por ejemplo "Ir a mis reservas").
-  static final ValueNotifier<int> pestana = ValueNotifier(0);
+  static int _pestanaInicial = 0;
 
-  static void irAReservas() {
-    pestana.value = 1;
-    MisReservasScreen.recargar.value++;
+  /// Abre «Mi cuenta» en la pestaña indicada (0 Vuelos, 1 Mis reservas, 2 Perfil).
+  static void abrir(BuildContext context, {int pestana = 0}) {
+    _pestanaInicial = pestana;
+    Navigator.of(context).pushNamed('/cliente');
+  }
+
+  /// Igual que [abrir] pero descarta la pila de pantallas (por ejemplo al terminar una reserva).
+  static void abrirLimpiando(BuildContext context, {int pestana = 0}) {
+    _pestanaInicial = pestana;
+    Navigator.of(context).pushNamedAndRemoveUntil('/cliente', (_) => false);
   }
 
   const ClienteHome({super.key});
@@ -28,53 +34,56 @@ class _ClienteHomeState extends State<ClienteHome> {
     (Icons.person_outline, Icons.person, 'Perfil'),
   ];
 
+  late int _i;
+
   @override
   void initState() {
     super.initState();
-    ClienteHome.pestana.value = 0;
+    _i = ClienteHome._pestanaInicial;
+    ClienteHome._pestanaInicial = 0;
   }
 
   void _cambiar(int i) {
     if (i == 1) MisReservasScreen.recargar.value++;
-    ClienteHome.pestana.value = i;
+    setState(() => _i = i);
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<int>(
-      valueListenable: ClienteHome.pestana,
-      builder: (context, i, _) {
-        final ancho = MediaQuery.sizeOf(context).width;
-        final cuerpo = IndexedStack(index: i, children: const [BuscarVuelosScreen(), MisReservasScreen(), PerfilScreen()]);
-        return Scaffold(
-          appBar: AppBar(
-            title: Row(children: [
-              const Icon(Icons.flight_takeoff),
-              const SizedBox(width: 8),
-              Text(_destinos[i].$3),
-            ]),
-          ),
-          body: ancho > 800
-              ? Row(children: [
-                  NavigationRail(
-                    selectedIndex: i,
-                    onDestinationSelected: _cambiar,
-                    labelType: NavigationRailLabelType.all,
-                    destinations: [for (final d in _destinos) NavigationRailDestination(icon: Icon(d.$1), selectedIcon: Icon(d.$2), label: Text(d.$3))],
-                  ),
-                  const VerticalDivider(width: 1),
-                  Expanded(child: cuerpo),
-                ])
-              : cuerpo,
-          bottomNavigationBar: ancho > 800
-              ? null
-              : NavigationBar(
-                  selectedIndex: i,
-                  onDestinationSelected: _cambiar,
-                  destinations: [for (final d in _destinos) NavigationDestination(icon: Icon(d.$1), selectedIcon: Icon(d.$2), label: d.$3)],
-                ),
-        );
-      },
+    final ancho = MediaQuery.sizeOf(context).width;
+    final cuerpo = IndexedStack(index: _i, children: const [BuscarVuelosScreen(), MisReservasScreen(), PerfilScreen()]);
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          tooltip: 'Ir al inicio',
+          icon: const Icon(Icons.home_outlined),
+          onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/inicio', (_) => false),
+        ),
+        title: Row(children: [
+          const Icon(Icons.flight_takeoff),
+          const SizedBox(width: 8),
+          Text(_destinos[_i].$3),
+        ]),
+      ),
+      body: ancho > 800
+          ? Row(children: [
+              NavigationRail(
+                selectedIndex: _i,
+                onDestinationSelected: _cambiar,
+                labelType: NavigationRailLabelType.all,
+                destinations: [for (final d in _destinos) NavigationRailDestination(icon: Icon(d.$1), selectedIcon: Icon(d.$2), label: Text(d.$3))],
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(child: cuerpo),
+            ])
+          : cuerpo,
+      bottomNavigationBar: ancho > 800
+          ? null
+          : NavigationBar(
+              selectedIndex: _i,
+              onDestinationSelected: _cambiar,
+              destinations: [for (final d in _destinos) NavigationDestination(icon: Icon(d.$1), selectedIcon: Icon(d.$2), label: d.$3)],
+            ),
     );
   }
 }

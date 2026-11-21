@@ -1,11 +1,14 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'models/usuario.dart';
 
 /// Sesión única de la aplicación (singleton): token JWT y usuario, persistidos en el dispositivo.
-class Sesion {
+/// Es un [ChangeNotifier] para que la barra superior y las pantallas públicas se actualicen al
+/// iniciar o cerrar sesión.
+class Sesion extends ChangeNotifier {
   Sesion._();
   static final Sesion instancia = Sesion._();
 
@@ -19,8 +22,9 @@ class Sesion {
   bool get esAdmin => usuario?.esAdmin ?? false;
   String get rol => usuario?.rol ?? '';
 
-  /// Ruta inicial según el rol del usuario.
-  String get rutaInicio => esAdmin ? '/admin' : '/cliente';
+  /// Pantalla a la que se va después de iniciar sesión: el administrador a su panel y el cliente
+  /// a la página principal (como en las aerolíneas reales, donde se vuelve al inicio con la sesión abierta).
+  String get rutaInicio => esAdmin ? '/admin' : '/inicio';
 
   Future<void> cargar() async {
     try {
@@ -32,11 +36,13 @@ class Sesion {
       token = null;
       usuario = null;
     }
+    notifyListeners();
   }
 
   Future<void> guardar(String nuevoToken, Usuario nuevoUsuario) async {
     token = nuevoToken;
     usuario = nuevoUsuario;
+    notifyListeners();
     try {
       final p = await SharedPreferences.getInstance();
       await p.setString(_claveToken, nuevoToken);
@@ -47,6 +53,7 @@ class Sesion {
   /// Actualiza solo los datos del usuario (por ejemplo tras verificar el perfil o editarlo).
   Future<void> actualizarUsuario(Usuario nuevo) async {
     usuario = nuevo;
+    notifyListeners();
     try {
       final p = await SharedPreferences.getInstance();
       await p.setString(_claveUsuario, jsonEncode(nuevo.toJson()));
@@ -56,6 +63,7 @@ class Sesion {
   Future<void> cerrar() async {
     token = null;
     usuario = null;
+    notifyListeners();
     try {
       final p = await SharedPreferences.getInstance();
       await p.remove(_claveToken);

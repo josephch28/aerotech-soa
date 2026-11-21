@@ -24,6 +24,19 @@ Sistema distribuido de reservas de vuelos con dos roles (**cliente** y **adminis
 
 Más detalle: [docs/arquitectura.md](docs/arquitectura.md) · [docs/contratos.md](docs/contratos.md).
 
+## Flujo de compra (como en las aerolíneas reales)
+
+La app abre en una **página de inicio pública** (inspirada en las de LATAM y Avianca) y **no exige iniciar sesión al empezar**:
+
+1. **Inicio:** buscador en la portada (origen ⇄ destino, fecha y pasajeros), ofertas de vuelo, destinos más buscados y beneficios. La barra superior tiene «Iniciar sesión» y «Crear cuenta» como opción.
+2. **Resultados:** lista pública de vuelos con orden por precio u hora y fechas alternativas si ese día no hay vuelos.
+3. **Detalle del vuelo y mapa de asientos:** también públicos.
+4. **Datos de los pasajeros y contacto:** el visitante los escribe sin cuenta.
+5. **Resumen:** aquí aparece el aviso «Para confirmar tu reserva inicia sesión o crea tu cuenta». Al iniciar sesión (o registrarse) **se vuelve al resumen con los asientos y datos intactos**, y se confirma la reserva.
+6. **Mis reservas:** al terminar se abre la cuenta del cliente. Editar, cancelar, comprobante XML e historial requieren sesión.
+
+Los administradores entran por «Iniciar sesión» y van directo a su panel; no pueden reservar.
+
 ## Requisitos
 
 - Python 3.12 o superior (probado con 3.14), `pip`.

@@ -157,7 +157,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
   Future<void> _cerrarSesion() async {
     await AuthService.logout();
-    if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+    if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/inicio', (_) => false);
   }
 
   @override

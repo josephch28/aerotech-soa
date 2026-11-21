@@ -4,11 +4,14 @@ import '../../config.dart';
 import '../../models/pasajero.dart';
 import '../../models/reserva.dart';
 import '../../services/api_client.dart';
+import '../../services/auth_service.dart';
 import '../../services/reserva_service.dart';
+import '../../sesion.dart';
 import '../../utils/formatos.dart';
 import '../../utils/ui.dart';
 import 'cliente_home.dart';
 import 'comprobante_screen.dart';
+import '../../widgets/pasos_reserva.dart';
 import 'reserva_flujo.dart';
 
 class ResumenReservaScreen extends StatefulWidget {
@@ -25,7 +28,31 @@ class _ResumenReservaScreenState extends State<ResumenReservaScreen> {
 
   List<Pasajero> get _pasajeros => f.ordenados.map((c) => f.datos[c]!).toList();
 
+  /// Si todavía no hay sesión, aquí (y no antes) se pide iniciar sesión o crear la cuenta: es el último paso,
+  /// justo antes de confirmar. Los asientos y datos ya escritos se conservan en [ReservaFlujo].
+  Future<bool> _asegurarSesion() async {
+    if (Sesion.instancia.activa) return true;
+    final r = await Navigator.of(context).pushNamed('/login', arguments: {'retorno': true});
+    if (!mounted) return false;
+    if (r != true || !Sesion.instancia.activa) return false;
+    if (Sesion.instancia.esAdmin) {
+      await AuthService.logout();
+      if (mounted) {
+        setState(() {});
+        mostrarError(context, 'Las cuentas de administrador no pueden reservar. Inicie sesión con una cuenta de cliente.');
+      }
+      return false;
+    }
+    setState(() {});
+    mostrarMensaje(context, 'Sesión iniciada como ${Sesion.instancia.usuario?.nombre}. Revisa el resumen y confirma tu reserva.');
+    return false; // vuelve al resumen; el usuario confirma con la sesión ya abierta
+  }
+
   Future<void> _confirmar() async {
+    if (!Sesion.instancia.activa) {
+      await _asegurarSesion();
+      return;
+    }
     setState(() => _enviando = true);
     try {
       if (f.edicion) {
@@ -95,11 +122,12 @@ class _ResumenReservaScreenState extends State<ResumenReservaScreen> {
       ),
     );
     if (!mounted) return;
-    final nav = Navigator.of(context);
-    nav.popUntil((r) => r.isFirst);
-    ClienteHome.irAReservas();
+    // Termina el flujo: se limpia la pila y se abre «Mis reservas»
+    ClienteHome.abrirLimpiando(context, pestana: 1);
     if (accion == 'xml') {
-      nav.push(MaterialPageRoute(builder: (_) => ComprobanteScreen(reservaId: r.id, codigo: r.codigoReserva)));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => ComprobanteScreen(reservaId: r.id, codigo: r.codigoReserva)));
+      });
     }
   }
 
@@ -110,10 +138,27 @@ class _ResumenReservaScreenState extends State<ResumenReservaScreen> {
     final pas = _pasajeros;
     return Scaffold(
       appBar: AppBar(title: Text(f.edicion ? 'Resumen de cambios' : 'Resumen de la reserva')),
-      body: Center(
+      body: Column(children: [
+        const PasosReserva(actual: 3),
+        Expanded(child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
           child: ListView(padding: const EdgeInsets.all(16), children: [
+            if (!Sesion.instancia.activa)
+              Card(
+                color: t.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(children: [
+                    const Icon(Icons.lock_person_outlined, size: 30),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text('¡Casi listo! Para confirmar tu reserva inicia sesión o crea tu cuenta. '
+                          'Tus asientos y los datos de los pasajeros se conservan.'),
+                    ),
+                  ]),
+                ),
+              ),
             Card(
               child: ListTile(
                 leading: const Icon(Icons.flight_takeoff),
@@ -168,12 +213,16 @@ class _ResumenReservaScreenState extends State<ResumenReservaScreen> {
               icon: _enviando
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.check),
-              label: Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(f.edicion ? 'Guardar cambios' : 'Confirmar reserva')),
+              label: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(f.edicion ? 'Guardar cambios' : (Sesion.instancia.activa ? 'Confirmar reserva' : 'Iniciar sesión para confirmar')),
+              ),
             ),
             const SizedBox(height: 24),
           ]),
         ),
-      ),
+      )),
+      ]),
     );
   }
 

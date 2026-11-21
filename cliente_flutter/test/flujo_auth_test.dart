@@ -8,9 +8,11 @@ import 'package:aerotech/main.dart';
 import 'package:aerotech/screens/admin/admin_home.dart';
 import 'package:aerotech/screens/auth/login_screen.dart';
 import 'package:aerotech/screens/cliente/cliente_home.dart';
+import 'package:aerotech/screens/publico/landing_screen.dart';
 import 'package:aerotech/services/api_client.dart';
 import 'package:aerotech/sesion.dart';
 import 'package:aerotech/utils/validadores.dart';
+import 'ayudas.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -66,13 +68,13 @@ Future<void> esperar(WidgetTester t, Finder f, {int segundos = 40}) async {
 }
 
 Future<void> abrirApp(WidgetTester t) async {
-  t.view.physicalSize = const Size(1000, 1700);
+  t.view.physicalSize = const Size(1500, 1800);
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
   SharedPreferences.setMockInitialValues({});
   await Sesion.instancia.cerrar();
   await t.pumpWidget(const AeroTechApp());
-  await esperar(t, find.byType(LoginScreen));
+  await abrirLoginDesdeLanding(t); // la app arranca en la página de inicio pública
 }
 
 Future<void> iniciarSesion(WidgetTester t, String correo, String clave) async {
@@ -118,9 +120,10 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Cédula ecuatoriana inválida'), findsOneWidget);
     expect(find.byType(ClienteHome), findsNothing);
+    await drenar(t);
   });
 
-  testWidgets('Registro → abre ClienteHome → cerrar sesión vuelve a Login', (t) async {
+  testWidgets('Registro → inicio con sesión → Mi cuenta → cerrar sesión vuelve al inicio', (t) async {
     await abrirApp(t);
     await t.tap(find.text('¿No tiene cuenta? Crear cuenta'));
     await t.pumpAndSettle();
@@ -134,7 +137,9 @@ void main() {
     await t.enterText(campos.at(5), 'Prueba1234');
     await t.enterText(campos.at(6), 'Prueba1234');
     await t.tap(find.widgetWithText(FilledButton, 'Crear cuenta'));
-    await esperar(t, find.byType(ClienteHome));
+    await esperar(t, find.byType(LandingScreen)); // tras registrarse se vuelve al inicio con la sesión abierta
+    expect(find.textContaining('Hola, Prueba'), findsOneWidget);
+    await abrirMiCuenta(t);
     expect(find.descendant(of: find.byType(NavigationRail), matching: find.text('Mis reservas')), findsOneWidget);
     expect(Sesion.instancia.esAdmin, isFalse);
 
@@ -142,8 +147,10 @@ void main() {
     await t.tap(find.descendant(of: find.byType(NavigationRail), matching: find.text('Perfil')));
     await esperar(t, find.widgetWithText(OutlinedButton, 'Cerrar sesión'));
     await t.tap(find.widgetWithText(OutlinedButton, 'Cerrar sesión'));
-    await esperar(t, find.byType(LoginScreen));
+    await esperar(t, find.byType(LandingScreen)); // al cerrar sesión se vuelve al inicio como visitante
     expect(Sesion.instancia.activa, isFalse);
+    expect(find.textContaining('Hola,'), findsNothing);
+    await drenar(t);
   });
 
   testWidgets('Correo duplicado: el error aparece bajo el campo correo', (t) async {
@@ -161,6 +168,7 @@ void main() {
     await t.tap(find.widgetWithText(FilledButton, 'Crear cuenta'));
     await esperar(t, find.text('El correo ya está registrado'));
     expect(find.byType(ClienteHome), findsNothing);
+    await drenar(t);
   });
 
   testWidgets('Login con clave incorrecta muestra SnackBar y se queda en Login', (t) async {
@@ -168,9 +176,10 @@ void main() {
     await iniciarSesion(t, _correoAdminUi, 'ClaveIncorrecta1');
     await esperar(t, find.text('Credenciales incorrectas'));
     expect(find.byType(LoginScreen), findsOneWidget);
+    await drenar(t);
   });
 
-  testWidgets('Login como admin → AdminHome → cerrar sesión vuelve a Login', (t) async {
+  testWidgets('Login como admin → AdminHome → cerrar sesión vuelve al inicio', (t) async {
     await abrirApp(t);
     await iniciarSesion(t, _correoAdminUi, _claveAdminUi);
     await esperar(t, find.byType(AdminHome));
@@ -179,8 +188,9 @@ void main() {
     expect(Sesion.instancia.rutaInicio, '/admin');
 
     await t.tap(find.descendant(of: find.byType(AppBar), matching: find.byIcon(Icons.logout)));
-    await esperar(t, find.byType(LoginScreen));
+    await esperar(t, find.byType(LandingScreen));
     expect(Sesion.instancia.activa, isFalse);
+    await drenar(t);
   });
 
   testWidgets('Al abrir la app con token guardado se valida con /perfil y se enruta por rol', (t) async {
@@ -206,16 +216,37 @@ void main() {
     await t.pump(const Duration(seconds: 6)); // vence los temporizadores simulados que queden
   });
 
-  testWidgets('Token revocado: el splash vuelve a Login', (t) async {
-    await abrirApp(t);
+  testWidgets('Token guardado vencido: se entra al inicio como visitante, sin mensajes de error', (t) async {
+    t.view.physicalSize = const Size(1500, 1800);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
     SharedPreferences.setMockInitialValues({
       'aerotech_token': 'token.invalido.xyz',
       'aerotech_usuario': '{"id":1,"nombre":"X","apellido":"Y","correo":"x@y.com","rol":"cliente"}',
     });
     await Sesion.instancia.cargar();
-    await t.pumpWidget(const SizedBox.shrink());
     await t.pumpWidget(const AeroTechApp());
-    await esperar(t, find.byType(LoginScreen));
+    await esperar(t, find.byType(LandingScreen));
     expect(Sesion.instancia.activa, isFalse);
+    expect(find.byType(LoginScreen), findsNothing);
+    expect(find.textContaining('Su sesión ya no es válida'), findsNothing);
+    await drenar(t);
+  });
+
+  testWidgets('La página de inicio es pública: ofertas, destinos y botones de acceso sin iniciar sesión', (t) async {
+    t.view.physicalSize = const Size(1500, 1800);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    SharedPreferences.setMockInitialValues({});
+    await Sesion.instancia.cerrar();
+    await t.pumpWidget(const AeroTechApp());
+    await esperar(t, find.byType(LandingScreen));
+    expect(find.text('Vuela por todo el Ecuador'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsWidgets); // barra superior y banner de invitación
+    expect(find.text('Crear cuenta'), findsWidgets);
+    await esperar(t, find.text('Ofertas de vuelo'));
+    await esperar(t, find.textContaining('desde')); // tarjetas de oferta con datos reales de la API
+    expect(find.text('Destinos más buscados'), findsOneWidget);
+    await drenar(t);
   });
 }

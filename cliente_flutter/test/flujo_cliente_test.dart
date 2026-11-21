@@ -7,13 +7,13 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:aerotech/main.dart';
-import 'package:aerotech/screens/auth/login_screen.dart';
-import 'package:aerotech/screens/cliente/cliente_home.dart';
+import 'package:aerotech/screens/publico/landing_screen.dart';
 import 'package:aerotech/services/usuario_service.dart';
 import 'package:aerotech/sesion.dart';
 import 'package:aerotech/utils/validadores.dart';
 import 'package:aerotech/widgets/mapa_asientos/asiento_widget.dart';
 import 'package:aerotech/widgets/vuelo_card.dart';
+import 'ayudas.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -111,7 +111,7 @@ Future<void> avanzar(WidgetTester t, [int n = 6]) async {
 }
 
 Future<String> _registrarYEntrar(WidgetTester t) async {
-  t.view.physicalSize = const Size(1300, 1800);
+  t.view.physicalSize = const Size(1500, 1800);
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
   SharedPreferences.setMockInitialValues({});
@@ -120,11 +120,12 @@ Future<String> _registrarYEntrar(WidgetTester t) async {
   await t.runAsync(() => UsuarioService.registrar(
       nombre: 'Cliente', apellido: 'Flutter', cedula: _cedula(), telefono: '0991234567', correo: correo, password: 'Prueba1234'));
   await t.pumpWidget(const AeroTechApp());
-  await esperar(t, find.byType(LoginScreen));
+  await abrirLoginDesdeLanding(t); // la app arranca en la página de inicio pública
   await t.enterText(find.byType(TextFormField).at(0), correo);
   await t.enterText(find.byType(TextFormField).at(1), 'Prueba1234');
   await t.tap(find.widgetWithText(FilledButton, 'Iniciar sesión'));
-  await esperar(t, find.byType(ClienteHome));
+  await esperar(t, find.byType(LandingScreen)); // tras iniciar sesión se vuelve al inicio
+  await abrirMiCuenta(t, rail: 'Vuelos');
   return correo;
 }
 

@@ -24,8 +24,8 @@ class UsuarioService {
   }
 
   /// Perfil actual (también valida que el token guardado siga vigente).
-  static Future<Usuario> perfil() async {
-    final r = await ApiClient.get('/api/usuarios/perfil');
+  static Future<Usuario> perfil({bool expulsar = true}) async {
+    final r = await ApiClient.get('/api/usuarios/perfil', expulsar: expulsar);
     final u = Usuario.fromJson(r as Map<String, dynamic>);
     await Sesion.instancia.actualizarUsuario(u);
     return u;

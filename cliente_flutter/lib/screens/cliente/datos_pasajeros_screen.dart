@@ -7,6 +7,7 @@ import '../../utils/formatos.dart';
 import '../../utils/ui.dart';
 import '../../utils/validadores.dart';
 import '../../widgets/campo_texto.dart';
+import '../../widgets/pasos_reserva.dart';
 import 'resumen_reserva_screen.dart';
 import 'reserva_flujo.dart';
 
@@ -159,7 +160,7 @@ class _DatosPasajerosScreenState extends State<DatosPasajerosScreen> {
         subtitle: Text('${Formatos.clase(a?.clase ?? '')}${a?.salidaEmergencia == true ? ' · Salida de emergencia' : ''} · ${Formatos.moneda(f.precioDe(fp.asiento))}'),
         childrenPadding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
         children: [
-          if (i == 0)
+          if (i == 0 && Sesion.instancia.activa)
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               value: fp.soyYo,
@@ -217,7 +218,9 @@ class _DatosPasajerosScreenState extends State<DatosPasajerosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(f.edicion ? 'Pasajeros (edición)' : 'Datos de los pasajeros')),
-      body: Form(
+      body: Column(children: [
+        const PasosReserva(actual: 2),
+        Expanded(child: Form(
         key: _form,
         child: Center(
           child: ConstrainedBox(
@@ -254,7 +257,8 @@ class _DatosPasajerosScreenState extends State<DatosPasajerosScreen> {
             ]),
           ),
         ),
-      ),
+      )),
+      ]),
     );
   }
 }

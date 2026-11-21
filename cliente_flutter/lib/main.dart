@@ -6,6 +6,7 @@ import 'screens/admin/admin_home.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/registro_screen.dart';
 import 'screens/cliente/cliente_home.dart';
+import 'screens/publico/landing_screen.dart';
 import 'services/api_client.dart';
 import 'services/usuario_service.dart';
 import 'sesion.dart';
@@ -43,6 +44,7 @@ class AeroTechApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (_) => const SplashScreen(),
+        '/inicio': (_) => const LandingScreen(),
         '/login': (_) => const LoginScreen(),
         '/registro': (_) => const RegistroScreen(),
         '/cliente': (_) => const ClienteHome(),
@@ -108,13 +110,21 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _decidir() async {
     if (!mounted) return;
     setState(() => _error = null);
-    if (!Sesion.instancia.activa) return _ir('/login');
+    // Sin sesión: se entra como visitante a la página de inicio pública
+    if (!Sesion.instancia.activa) return _ir('/inicio');
     try {
-      await UsuarioService.perfil();
+      await UsuarioService.perfil(expulsar: false);
       _ir(Sesion.instancia.rutaInicio);
+    } on ApiException catch (e) {
+      if (e.codigo == 401 || e.codigo == 403) {
+        // Sesión guardada vencida o revocada: se descarta en silencio y se entra como visitante
+        await Sesion.instancia.cerrar();
+        _ir('/inicio');
+      } else if (mounted) {
+        setState(() => _error = e);
+      }
     } catch (e) {
-      // Un 401 ya cerró la sesión y navegó a Login; otros errores permiten reintentar.
-      if (mounted && Sesion.instancia.activa) setState(() => _error = e);
+      if (mounted) setState(() => _error = e);
     }
   }
 
@@ -138,9 +148,9 @@ class _SplashScreenState extends State<SplashScreen> {
               TextButton(
                 onPressed: () async {
                   await Sesion.instancia.cerrar();
-                  _ir('/login');
+                  _ir('/inicio');
                 },
-                child: const Text('Cerrar sesión'),
+                child: const Text('Cerrar sesión y continuar como visitante'),
               ),
             ]),
     );

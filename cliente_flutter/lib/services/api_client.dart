@@ -94,8 +94,11 @@ class ApiClient {
     throw ApiException(mensaje, codigo: r.statusCode, campos: campos, extra: extra);
   }
 
-  static Future<dynamic> get(String ruta, {Map<String, dynamic>? query, bool auth = true}) async =>
-      _procesar(await _ejecutar(() => http.get(_uri(ruta, query), headers: _cabeceras(auth: auth))), conToken: auth);
+  /// `expulsar: false` evita cerrar la sesión y navegar a Login ante un 401 (la pantalla de arranque lo usa
+  /// para validar un token guardado sin asustar al visitante).
+  static Future<dynamic> get(String ruta, {Map<String, dynamic>? query, bool auth = true, bool expulsar = true}) async =>
+      _procesar(await _ejecutar(() => http.get(_uri(ruta, query), headers: _cabeceras(auth: auth))),
+          conToken: auth && expulsar);
 
   static Future<dynamic> post(String ruta, {Object? cuerpo, bool auth = true}) async => _procesar(
       await _ejecutar(() => http.post(_uri(ruta), headers: _cabeceras(json: true, auth: auth), body: jsonEncode(cuerpo ?? {}))),

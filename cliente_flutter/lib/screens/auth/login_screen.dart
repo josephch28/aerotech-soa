@@ -7,6 +7,10 @@ import '../../utils/ui.dart';
 import '../../utils/validadores.dart';
 import '../../widgets/campo_texto.dart';
 
+/// Pantalla de inicio de sesión. Se puede abrir de dos formas:
+/// - desde la barra superior: al terminar se va al inicio (o al panel si es administrador);
+/// - desde el paso final de una reserva (`arguments: {'retorno': true}`): al terminar **vuelve a la pantalla anterior**
+///   devolviendo `true`, para que la reserva continúe con los asientos y datos ya escritos.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -20,6 +24,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final _password = TextEditingController();
   bool _ver = false;
   bool _cargando = false;
+
+  bool get _retorno {
+    final a = ModalRoute.of(context)?.settings.arguments;
+    return a is Map && a['retorno'] == true;
+  }
 
   @override
   void initState() {
@@ -47,7 +56,11 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await AuthService.login(_correo.text, _password.text);
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(Sesion.instancia.rutaInicio, (_) => false);
+      if (_retorno) {
+        Navigator.of(context).pop(true);
+      } else {
+        Navigator.of(context).pushNamedAndRemoveUntil(Sesion.instancia.rutaInicio, (_) => false);
+      }
     } catch (e) {
       mostrarError(context, e);
     } finally {
@@ -55,10 +68,27 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _crearCuenta() async {
+    final args = _retorno ? const {'retorno': true} : null;
+    final r = await Navigator.of(context).pushNamed('/registro', arguments: args);
+    // Si venimos de una reserva y la cuenta se creó, se devuelve el control a la reserva
+    if (r == true && _retorno && mounted) Navigator.of(context).pop(true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     return Scaffold(
+      appBar: AppBar(
+        title: Text(_retorno ? 'Confirma tu reserva' : 'Iniciar sesión'),
+        leading: _retorno
+            ? null
+            : IconButton(
+                tooltip: 'Volver al inicio',
+                icon: const Icon(Icons.home_outlined),
+                onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/inicio', (_) => false),
+              ),
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -75,7 +105,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
                 Text('AeroTech – Reservas de vuelos',
                     textAlign: TextAlign.center, style: t.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 28),
+                if (_retorno) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: t.colorScheme.primaryContainer.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(10)),
+                    child: const Row(children: [
+                      Icon(Icons.info_outline),
+                      SizedBox(width: 10),
+                      Expanded(child: Text('Para confirmar tu reserva inicia sesión o crea tu cuenta. Tus asientos y los datos de los pasajeros se conservan.')),
+                    ]),
+                  ),
+                ],
+                const SizedBox(height: 24),
                 CampoTexto(
                   controller: _correo,
                   etiqueta: 'Correo electrónico',
@@ -107,12 +149,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _cargando ? null : _entrar,
                     child: _cargando
                         ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                        : const Text('Iniciar sesión'),
+                        : Text(_retorno ? 'Iniciar sesión y continuar' : 'Iniciar sesión'),
                   ),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
-                  onPressed: _cargando ? null : () => Navigator.of(context).pushNamed('/registro'),
+                  onPressed: _cargando ? null : _crearCuenta,
                   child: const Text('¿No tiene cuenta? Crear cuenta'),
                 ),
               ]),
