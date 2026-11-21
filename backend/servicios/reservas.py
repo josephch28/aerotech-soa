@@ -250,16 +250,23 @@ def mis_reservas():
     if estado and estado not in ("confirmada", "cancelada"):
         raise ErrorValidacion({"estado": "Estado inválido (confirmada o cancelada)"})
     with transaccion() as cur:
-        sql = "SELECT * FROM reservas WHERE usuario_id=%s" + (" AND estado=%s" if estado else "")
-        cur.execute(sql + " ORDER BY fecha_reserva DESC", (g.usuario_id, estado) if estado else (g.usuario_id,))
-        salida = []
-        for r in cur.fetchall():
-            cur.execute(SELECT_VUELO + " WHERE v.id=%s", (r["vuelo_id"],))
-            salida.append(serializar({
-                "id": r["id"], "codigo_reserva": r["codigo_reserva"], "estado": r["estado"],
-                "cantidad_asientos": r["cantidad_asientos"], "total": r["total"],
-                "fecha_reserva": r["fecha_reserva"], "vuelo": cur.fetchone(),
-                "asientos": _estado_actual(cur, r["id"])}))
+        # Una sola consulta para las reservas (con sus asientos) y otra para todos los vuelos:
+        # antes se hacían 2 consultas por reserva y con muchas reservas la lista tardaba más de un minuto.
+        sql = """SELECT r.id, r.codigo_reserva, r.estado, r.cantidad_asientos, r.total, r.fecha_reserva, r.vuelo_id,
+                        ARRAY(SELECT a.codigo FROM pasajeros p JOIN asientos a ON a.id = p.asiento_id
+                              WHERE p.reserva_id = r.id ORDER BY p.id) AS asientos
+                 FROM reservas r WHERE r.usuario_id=%s""" + (" AND r.estado=%s" if estado else "")
+        cur.execute(sql + " ORDER BY r.fecha_reserva DESC", (g.usuario_id, estado) if estado else (g.usuario_id,))
+        filas = cur.fetchall()
+        vuelos = {}
+        if filas:
+            cur.execute(SELECT_VUELO + " WHERE v.id = ANY(%s)", (list({f["vuelo_id"] for f in filas}),))
+            vuelos = {v["id"]: v for v in cur.fetchall()}
+        salida = [serializar({
+            "id": r["id"], "codigo_reserva": r["codigo_reserva"], "estado": r["estado"],
+            "cantidad_asientos": r["cantidad_asientos"], "total": r["total"],
+            "fecha_reserva": r["fecha_reserva"], "vuelo": vuelos.get(r["vuelo_id"]),
+            "asientos": r["asientos"]}) for r in filas]
     return jsonify({"total": len(salida), "reservas": salida})
 
 
